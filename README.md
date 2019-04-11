@@ -1,1 +1,2 @@
-# myvd-k8s-operator
+# openunison-k8s-operator
+Operator for OpenUnison

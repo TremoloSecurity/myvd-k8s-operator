@@ -1,0 +1,108 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: myvd-operator
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: myvd-operator-role
+rules:
+- apiGroups:
+  - myvirtualdirectory.tremolo.io
+  - ""
+  - apps
+  resources:
+  - myvirtualdirectories
+  - pods
+  - deployments
+  - secrets
+  - configmaps
+  - services
+  - serviceaccounts
+  verbs:
+  - "*"
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: myvd-operator-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: myvd-operator
+  apiGroup: ""
+roleRef:
+  kind: Role
+  name: myvd-operator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: myvd-operator
+  name: myvd-operator
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: myvd-operator
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: myvd-operator
+    spec:
+      containers:
+      - env:
+        - name: JAVA_OPTS
+          value: -Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: docker.io/mlbiam/myvd-k8s-operator
+        command:
+        - java
+        - -jar
+        - /usr/local/myvd/javascript-operator.jar
+        - -tokenPath
+        - /var/run/secrets/kubernetes.io/serviceaccount/token
+        - -rootCaPath
+        - /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        - -kubernetesURL
+        - https://kubernetes.default.svc.cluster.local
+        - -namespace
+        - NAMESPACE
+        - -apiGroup
+        - myvirtualdirectory.tremolo.io/v1
+        - -objectType
+        - myvirtualdirectories
+        - -jsPath
+        - /usr/local/myvd/js
+        - -configMaps
+        - /etc/extraMaps
+        imagePullPolicy: Always
+        name: myvd-operator
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/extraMaps
+          name: extra-maps
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      serviceAccount: myvd-operator
+      volumes:
+        - name: extra-maps
+          emptyDir: {}
