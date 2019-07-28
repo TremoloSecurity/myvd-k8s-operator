@@ -33,8 +33,10 @@ function props_from_secret() {
 
            
         }
+        return true;
     } else {
-        return;
+        print("The source secret '" + cfg_obj.source_secret + "' does not exist.  Please create it.");
+        return false;
     }
 }
 
@@ -347,7 +349,9 @@ function process_static_keys() {
 */
 function generate_myvd_secret(event_json) {
     inProp = props_from_crd();
-    props_from_secret();
+    if (! props_from_secret()) {
+        return false;
+    }
     
 
     
@@ -417,7 +421,11 @@ function generate_myvd_secret(event_json) {
         k8s.postWS('/api/v1/namespaces/' + k8s_namespace + '/secrets',JSON.stringify(new_secret));
     }
 
+
+
     print("Done");
+
+    return true;
 }
 
 

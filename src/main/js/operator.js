@@ -6,16 +6,18 @@ function on_watch(k8s_event) {
     cfg_obj = k8s_obj['spec'];
     
     if (event_json["type"] === "ADDED") {
-        generate_myvd_secret(event_json);
-        generate_myvd_configmap();
-        create_static_objects();
+        if (generate_myvd_secret(event_json)) {
+            generate_myvd_configmap();
+            create_static_objects();
+        }
 
         
 
     } else if (event_json["type"] === "MODIFIED") {
-        generate_myvd_secret(event_json);
-        generate_myvd_configmap();
-        update_k8s_deployment();
+        if (generate_myvd_secret(event_json)) {
+            generate_myvd_configmap();
+            update_k8s_deployment();
+        }
 
     } else if (event_json["type"] === "DELETED") {
         delete_k8s_deployment();
